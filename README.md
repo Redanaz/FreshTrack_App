@@ -1,3 +1,3 @@
 # fresh_track_app
 <br>
-# this is my repo
+# this is my repository
