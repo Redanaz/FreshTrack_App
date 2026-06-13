@@ -61,4 +61,36 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
+
+  Future<void> showImmediateExpiryAlert(String id, String itemName, int daysLeft) async {
+    String title = '';
+    String body = '';
+
+    if (daysLeft == 1) {
+      title = '🕐 Expiring Soon!';
+      body = '$itemName expires TOMORROW. Use it now!';
+    } else if (daysLeft == 2) {
+      title = '🕐 Expiring Soon!';
+      body = '$itemName expires in 2 days. Use it soon!';
+    } else if (daysLeft <= 0) {
+      title = '⚠️ Expiry Alert!';
+      body = '$itemName has already expired! Please check your inventory.';
+    } else {
+      return;
+    }
+
+    await _notifications.show(
+      id.hashCode + 1,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'expiry_channel',
+          'Expiry Alerts',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+    );
+  }
 }

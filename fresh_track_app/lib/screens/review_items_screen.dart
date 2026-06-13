@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/food_item.dart';
 
 class ReviewItemsScreen extends StatefulWidget {
   final List<String> scannedNames;
@@ -22,8 +21,24 @@ class _ReviewItemsScreenState extends State<ReviewItemsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final allSelected = _itemsToReview.every((item) => item['selected'] == true);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Review Scanned Items")),
+      appBar: AppBar(
+        title: const Text("Review Scanned Items"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                for (final item in _itemsToReview) {
+                  item['selected'] = !allSelected;
+                }
+              });
+            },
+            child: Text(allSelected ? "Deselect All" : "Select All"),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(

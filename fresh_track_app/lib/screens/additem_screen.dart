@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../core/shelf_life_data.dart';
 
 class AddItemDialog extends StatefulWidget {
   final Function(String name, String category, DateTime expiry, String qty) onAdd;
@@ -24,6 +25,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
   late TextEditingController _qtyController;
   String? _selectedCategory;
   DateTime? _selectedDate;
+  String? _suggestionText;
 
   final List<String> _categories = [
     'Dairy',
@@ -72,9 +74,11 @@ class _AddItemDialogState extends State<AddItemDialog> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
+    ValueChanged<String>? onChanged,
   }) {
     return TextField(
       controller: controller,
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
@@ -124,8 +128,31 @@ class _AddItemDialogState extends State<AddItemDialog> {
 
               _buildLabel('Item Name'),
               _buildTextField(
-                  controller: _nameController,
-                  hint: 'e.g., Milk, Chicken, Apples'),
+                controller: _nameController,
+                hint: 'e.g., Milk, Chicken, Apples',
+                onChanged: (value) {
+                  final result = getShelfLifeDays(value);
+                  setState(() {
+                    if (result != null) {
+                      _selectedDate ??= DateTime.now().add(Duration(days: result));
+                      _suggestionText = "💡 Suggested: $result days based on typical shelf life";
+                    } else {
+                      _suggestionText = null;
+                    }
+                  });
+                },
+              ),
+              if (_suggestionText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    _suggestionText!,
+                    style: const TextStyle(
+                      color: Color(0xFF006D44),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 16),
 
               _buildLabel('Category'),

@@ -7,9 +7,11 @@ import '../widgets/food_card.dart';
 import '../widgets/scan_dialog.dart';
 import '../core/receipt_parser.dart'; 
 import '../core/notification_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/supabase_service.dart';
 import 'review_items_screen.dart';
 import 'additem_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,19 +52,22 @@ class _HomeScreenState extends State<HomeScreen> {
         initialName: item.name,
         initialDate: item.expiryDate,
         onAdd: (name, category, expiry, qty) async {
-          final updated = FoodItem(
+          final updatedItem = FoodItem(
             id: item.id,
             name: name,
             category: category,
             expiryDate: expiry,
             quantity: qty,
           );
-          await SupabaseService.updateItem(updated);
+          await SupabaseService.updateItem(updatedItem);
           setState(() {
             int index = _items.indexWhere((element) => element.id == item.id);
-            _items[index] = updated;
+            _items[index] = updatedItem;
           });
           NotificationService().scheduleExpiryAlert(item.id, name, expiry);
+          if (updatedItem.daysLeft <= 2) {
+            NotificationService().showImmediateExpiryAlert(item.id, name, updatedItem.daysLeft);
+          }
         },
       ),
     );
@@ -147,6 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
     await SupabaseService.addItem(newItem);
     setState(() => _items.add(newItem));
     NotificationService().scheduleExpiryAlert(uniqueId, name, expiry);
+    if (newItem.daysLeft <= 2) {
+      NotificationService().showImmediateExpiryAlert(uniqueId, name, newItem.daysLeft);
+    }
   }
 
   @override
@@ -249,18 +257,53 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          Stack(
+          Row(
             children: [
-              CircleAvatar(
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: const Icon(Icons.notifications_outlined, color: AppColors.primary),
+              Stack(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    child: const Icon(Icons.notifications_outlined, color: AppColors.primary, size: 20),
+                  ),
+                  if (_items.any((i) => i.status != ExpiryStatus.safe))
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(width: 12, height: 12, decoration: BoxDecoration(color: AppColors.expired, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2))),
+                    ),
+                ],
               ),
-              if (_items.any((i) => i.status != ExpiryStatus.safe))
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(width: 12, height: 12, decoration: BoxDecoration(color: AppColors.expired, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2))),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text("Sign Out?"),
+                      content: const Text("You will be taken back to the login screen."),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+                        TextButton(
+                          onPressed: () async {
+                            await Supabase.instance.client.auth.signOut();
+                            if (!context.mounted) return;
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                              (route) => false,
+                            );
+                          },
+                          child: const Text("Sign Out", style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: CircleAvatar(
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: const Icon(Icons.logout, color: AppColors.primary, size: 20),
                 ),
+              ),
             ],
           ),
         ],
